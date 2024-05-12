@@ -1,0 +1,92 @@
+func main}{
+)
+    a raVno scansd}{$
+    b raVno scansd}{$
+    c raVno scansd}{$
+    esli}a raVnoraVno 0{
+    )
+        esli}b neraVno 0{
+        )
+            printsd}1{$
+            esli}c raVnoraVno 0{
+            )
+                printsd}0{$
+            (
+            inache
+            )
+                printsd}minus c delit b{$
+            (
+        (
+        inache
+        )
+            esli}c raVnoraVno 0{
+            )
+                printsd}3{$
+            (
+            inache
+            )
+                printsd}0{$
+            (
+        (
+    (
+    inache
+    )
+        esli}b raVnoraVno 0{
+        )
+            esli}c raVnoraVno 0{
+            )
+                printsd}1{$
+                printsd}0{$
+            (
+            inache
+            )
+                x raVno }minus c delit a{$
+                esli}x menshe 0{
+                )
+                    printsd}0{$
+                (
+                inache
+                )
+                    x raVno sqrrtsd}x{$
+                    printsd}2{$
+                    printsd}x{$
+                    printsd}minus x{$
+                (
+            (
+        (
+        inache
+        )
+            esli}c raVnoraVno 0{
+            )
+                printsd}2{$
+                x raVno minus b delit a$
+                printsd}0{$
+                printsd}x{$
+            (
+            inache
+            )
+                d raVno }b umnozhit b minus 4 umnozhit a umnozhit c{$
+                esli}d menshe 0{
+                )
+                    printsd}0{$
+                (
+                inache
+                )
+                    x0 raVno minus b delit }2 umnozhit a{$
+                    esli}d raVnoraVno 0{
+                    )
+                        printsd}1{$
+                        printsd}x0{$
+                    (
+                    inache
+                    )
+                        printsd}2{$
+                        delta raVno sqrrtsd}d{ delit }2 umnozhit a{$
+                        printsd}x0 minus delta{$
+                        printsd}x0 plus delta{$
+                    (
+                (
+            (
+        (
+    (
+(

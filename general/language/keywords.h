@@ -1,0 +1,5 @@
+KEYWORD(FUNC , "func"  )
+KEYWORD(IF   , "esli"  )
+KEYWORD(ELSE , "inache")
+KEYWORD(WHILE, "poka"  )
+KEYWORD(RET  , "VoZdat")

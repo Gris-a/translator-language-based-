@@ -1,0 +1,23 @@
+func factorial}a{
+)
+    esli}a menshe 2{
+    )
+        VoZdat 1$
+    (
+
+    VoZdat factorial}a minus 1{ umnozhit a$
+(
+
+func main}{
+)
+    b raVno scansd}{$
+    esli}b menshe 0{
+    )
+        b raVno minus 1$
+    (
+    inache
+    )
+        b raVno factorial}b{$
+    (
+    printsd}b{$
+(
