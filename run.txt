@@ -1,3 +1,4 @@
+./cp samples/quad.txt -S prog.asm
 nasm -felf64 prog.asm -o prog.o
-nasm -felf64 compiler/lib.asm -o lib.o
-ld -no-pie -lc -dynamic-linker /lib64/ld-linux-x86-64.so.2 prog.o lib.o -o prog.out
+nasm -felf64 compiler/lib_no_libc.asm -o lib.o
+ld -no-pie prog.o lib.o -o prog.out
