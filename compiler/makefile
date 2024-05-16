@@ -1,11 +1,11 @@
-CFLAGS = -D _DEBUG -ggdb3 -std=c++20 -O0 -Wall -Wextra -Weffc++ -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations -Wcast-align -Wcast-qual -Wchar-subscripts -Wconditionally-supported -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat=2 -Winline -Wlogical-op -Wnon-virtual-dtor -Wopenmp-simd -Woverloaded-virtual -Wpacked -Wpointer-arith -Winit-self -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=2 -Wsuggest-attribute=noreturn -Wsuggest-final-methods -Wsuggest-final-types -Wsuggest-override -Wswitch-default -Wswitch-enum -Wsync-nand -Wundef -Wunreachable-code -Wunused -Wuseless-cast -Wvariadic-macros -Wno-literal-suffix -Wno-missing-field-initializers -Wno-narrowing -Wno-old-style-cast -Wno-varargs -Wstack-protector -fcheck-new -fsized-deallocation -fstack-protector -fstrict-overflow -flto-odr-type-merging -fno-omit-frame-pointer -Wlarger-than=8192 -Wstack-usage=8192 -pie -fPIE -Werror=vla -fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
+CFLAGS = -Wall -Wextra -O2
 
 OBJDIR   = obj
 GENDIR   = ../general
 FRONTDIR = ../frontend
 BACKDIR  = ../backend
 
-objects = $(addprefix $(OBJDIR)/, main.o tokens.o source.o stack.o save_tree.o parser.o names_table.o tree_struct.o tree_data.o translator.o)
+objects = $(addprefix $(OBJDIR)/, main.o tokens.o source.o stack.o save_tree.o parser.o names_table.o tree_struct.o tree_data.o translator_asm.o translator_bin.o hash_table.o)
 
 all: $(OBJDIR) ../cp
 
@@ -43,5 +43,11 @@ $(OBJDIR)/tree_struct.o: $(GENDIR)/tree/source/tree_struct.cpp $(wildcard $(GEND
 $(OBJDIR)/tree_data.o: $(GENDIR)/tree/source/tree_data.cpp $(wildcard $(GENDIR)/tree/include/*.h) $(wildcard $(GENDIR)/language/*.h)
 	@g++ $(CFLAGS)  -c $< -o $@
 
-$(OBJDIR)/translator.o: $(BACKDIR)/translator/translator_asm.cpp $(BACKDIR)/translator/translator.h $(wildcard $(GENDIR)/tree/include/*.h) $(wildcard $(GENDIR)/language/*.h)
+$(OBJDIR)/translator_asm.o: $(BACKDIR)/translator/translator_asm.cpp $(BACKDIR)/translator/translator.h $(wildcard $(GENDIR)/tree/include/*.h) $(wildcard $(GENDIR)/language/*.h)
+	@g++ $(CFLAGS)  -c $< -o $@
+
+$(OBJDIR)/translator_bin.o: $(BACKDIR)/translator/translator_bin.cpp $(BACKDIR)/translator/translator.h $(wildcard $(GENDIR)/tree/include/*.h) $(wildcard $(GENDIR)/language/*.h)
+	@g++ $(CFLAGS)  -c $< -o $@
+
+$(OBJDIR)/hash_table.o: $(BACKDIR)/hash_table/hash_table.c $(BACKDIR)/hash_table/hash_table.h
 	@g++ $(CFLAGS)  -c $< -o $@

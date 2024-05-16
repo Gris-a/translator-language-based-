@@ -21,6 +21,7 @@ static void TranslateSub(Node *sub, FILE *asm_file, size_t n_func_params);
 static void TranslateMul(Node *mul, FILE *asm_file, size_t n_func_params);
 static void TranslateDiv(Node *div, FILE *asm_file, size_t n_func_params);
 
+static void TranslateNum(Node *num_node, FILE *asm_file, size_t n_func_params);
 static void TranslateVariable(Node *var, FILE *asm_file, size_t n_func_params);
 static void TranslateExpression(Node *expr, FILE *asm_file, size_t n_func_params);
 
@@ -87,55 +88,55 @@ static void TranslateNotEq(Node *neq, FILE *asm_file, size_t n_func_params)
 
 static void TranslateAnd(Node *_and, FILE *asm_file, size_t n_func_params)
 {
-    int false_label = LABEL_N++;
-    int true_label  = LABEL_N++;
+    int false_label   = LABEL_N++;
+    int and_end_label = LABEL_N++;
 
     TranslateExpression(_and->left, asm_file, n_func_params);
     fprintf(asm_file, "\n"
                       "\tpop rsi\n"
                       "\ttest rsi, rsi\n"
-                      "\tjz FALSE%d\n"
+                      "\tjz near AND_FALSE%d\n"
                       "\n", false_label);
 
     TranslateExpression(_and->right, asm_file, n_func_params);
     fprintf(asm_file, "\n"
                       "\tpop rsi\n"
                       "\ttest rsi, rsi\n"
-                      "\tjz FALSE%d\n"
+                      "\tjz near AND_FALSE%d\n"
                       "\n", false_label);
 
     fprintf(asm_file, "\tpush 1\n"
-                      "\tjmp AND_END%d\n"
-                      "FALSE%d:\n"
+                      "\tjmp near AND_END%d\n"
+                      "AND_FALSE%d:\n"
                       "\tpush 0\n"
                       "AND_END%d:\n"
-                      "\n", true_label, false_label, true_label);
+                      "\n", and_end_label, false_label, and_end_label);
 }
 
 static void TranslateOr(Node *_or, FILE *asm_file, size_t n_func_params)
 {
-    int false_label = LABEL_N++;
-    int true_label  = LABEL_N++;
+    int true_label   = LABEL_N++;
+    int or_end_label = LABEL_N++;
 
     TranslateExpression(_or->left , asm_file, n_func_params);
     fprintf(asm_file, "\n"
                       "\tpop rsi\n"
                       "\ttest rsi, rsi\n"
-                      "\tjnz TRUE%d\n"
+                      "\tjnz near OR_TRUE%d\n"
                       "\n", true_label);
 
     TranslateExpression(_or->right, asm_file, n_func_params);
     fprintf(asm_file, "\n"
                       "\tpop rsi\n"
                       "\ttest rsi, rsi\n"
-                      "\tjnz TRUE%d\n"
+                      "\tjnz near OR_TRUE%d\n"
                       "\n", true_label);
 
     fprintf(asm_file, "\tpush 0\n"
-                      "\tjmp OR_END%d\n"
-                      "TRUE%d:\n"
+                      "\tjmp near OR_END%d\n"
+                      "OR_TRUE%d:\n"
                       "\tpush 1\n"
-                      "OR_END%d:\n", false_label, true_label, false_label);
+                      "OR_END%d:\n", or_end_label, true_label, or_end_label);
 }
 
 
@@ -195,6 +196,14 @@ static void TranslateFuncCall(Node *func, FILE *asm_file, size_t n_func_params)
                       "\n");
 }
 
+
+static void TranslateNum(Node *num_node, FILE *asm_file, size_t n_func_params)
+{
+    double num = GetNumber(num_node);
+    fprintf(asm_file, "\tmov rax, %ld\n"
+                      "\tpush rax\n", *(long *)(&num));
+}
+
 static void TranslateVariable(Node *var, FILE *asm_file, size_t n_func_params)
 {
     size_t var_id = GetVariable(var);
@@ -202,8 +211,12 @@ static void TranslateVariable(Node *var, FILE *asm_file, size_t n_func_params)
     {
         fprintf(asm_file, "\tpush qword [rbp + %zu]\n", var_id * 8 + 16);
     }
-    else fprintf(asm_file, "\tpush qword [rbp - %zu]\n", (var_id + 1 - n_func_params) * 8);
+    else
+    {
+        fprintf(asm_file, "\tpush qword [rbp - %zu]\n", (var_id + 1 - n_func_params) * 8);
+    }
 }
+
 
 static void TranslateExpression(Node *expr, FILE *asm_file, size_t n_func_params)
 {
@@ -211,9 +224,7 @@ static void TranslateExpression(Node *expr, FILE *asm_file, size_t n_func_params
     {
         case NodeType::NUM:
         {
-            double num = GetNumber(expr);
-            fprintf(asm_file, "\tmov rax, %ld\n"
-                              "\tpush rax\n", *(long *)(&num));
+            TranslateNum(expr, asm_file, n_func_params);
             return;
         }
         case NodeType::VAR:
@@ -309,7 +320,10 @@ static void TranslateAssignment(Node *assig, FILE *asm_file, size_t n_func_param
     {
         fprintf(asm_file, "\tmovsd [rbp + %zu], xmm0\n", var_id * 8 + 16);
     }
-    else fprintf(asm_file, "\tmovsd [rbp - %zu], xmm0\n", (var_id + 1 - n_func_params) * 8);
+    else
+    {
+        fprintf(asm_file, "\tmovsd [rbp - %zu], xmm0\n", (var_id + 1 - n_func_params) * 8);
+    }
 }
 
 static void TranslateIf(Node *_if, FILE *asm_file, size_t n_func_params)
@@ -325,12 +339,12 @@ static void TranslateIf(Node *_if, FILE *asm_file, size_t n_func_params)
     fprintf(asm_file, "\n"
                       "\tpop rax\n"
                       "\ttest rax, rax\n"
-                      "\tje ELSE%d\n"
+                      "\tjz near ELSE%d\n"
                       "\n", if_no);
 
     TranslateBody(_if->left->left, asm_file, n_func_params);
     fprintf(asm_file, "\n"
-                      "\tjmp IF_END%d\n"
+                      "\tjmp near IF_END%d\n"
                       "\n"
                       "ELSE%d:\n", if_yes, if_no);
 
@@ -354,12 +368,12 @@ static void TranslateWhile(Node *_while, FILE *asm_file, size_t n_func_params)
     fprintf(asm_file, "\n"
                       "\tpop rax\n"
                       "\ttest rax, rax\n"
-                      "\tje WHILE_END%d\n"
+                      "\tjz near WHILE_END%d\n"
                       "\n", while_end);
 
     TranslateBody(_while->left->left, asm_file, n_func_params);
     fprintf(asm_file, "\n"
-                      "\tjmp WHILE_BEGIN%d\n"
+                      "\tjmp near WHILE_BEGIN%d\n"
                       "WHILE_END%d:\n"
                       "\n", while_begin, while_end);
 }

@@ -5,6 +5,9 @@ sys_write       equ     1
 
 stdin_fileno    equ     0
 stdout_fileno   equ     1
+
+buf_sz          equ     512
+max_n_digits    equ     5
 ; ===============================================
 
 
@@ -28,7 +31,12 @@ section         .text
 ; ===============================================
 printsd:
 ; -----------------------------------------------
-    movsd xmm0, [rsp + 8]
+    push rbp
+    mov rbp, rsp
+; -----------------------------------------------
+    sub rsp, buf_sz
+; -----------------------------------------------
+    movsd xmm0, [rbp + 16]
 ; -----------------------------------------------
     xor esi, esi                                ; rsi = 0
 ; -----------------------------------------------
@@ -46,7 +54,7 @@ Negative:
     and rax, rbx
     movq xmm0, rax
 ; ---------------------------
-    mov byte [buffer + rsi], '-'
+    mov byte [rsp + rsi], '-'
     inc rsi
 ; ---------------------------
 Positive:
@@ -60,9 +68,9 @@ Positive:
 ; -----------------------------------------------
 ZeroValue:
 ; ---------------------------
-    mov byte [buffer + rsi + 0], '0'
-    mov byte [buffer + rsi + 1], '.'
-    mov byte [buffer + rsi + 2], '0'
+    mov byte [rsp + rsi + 0], '0'
+    mov byte [rsp + rsi + 1], '.'
+    mov byte [rsp + rsi + 2], '0'
     add rsi, 3
 ; ---------------------------
     jmp Print
@@ -119,8 +127,8 @@ ConversionToString:
     cvtsd2si rax, xmm1                          ; x <=> 0x3x
     add rax, 0x30
 ; ---------------------------
-    mov byte [buffer + rsi + 0], al
-    mov byte [buffer + rsi + 1], '.'
+    mov byte [rsp + rsi + 0], al
+    mov byte [rsp + rsi + 1], '.'
     add rsi, 2
 ; ---------------------------
 ConvertDigit:
@@ -135,7 +143,7 @@ ConvertDigit:
     cvtsd2si rax, xmm1
     add rax, 0x30                               ; x <=> 0x3x
 ; ---------------------------
-    mov byte [buffer + rsi], al
+    mov byte [rsp + rsi], al
     inc rsi
 ; ---------------------------
     mov rax, 0x3EE4F8B588E368F1                 ; xmm1 = (xmm0 < 1.0e-5)
@@ -146,7 +154,7 @@ ConvertDigit:
     test eax, eax
     jnz Exponent
 ; ---------------------------
-    cmp rcx, 5                                  ; no more than 5 digits
+    cmp rcx, max_n_digits                       ; no more than 5 digits
     je Exponent
 ; ---------------------------
     jmp ConvertDigit
@@ -156,7 +164,7 @@ Exponent:
     test rdx, rdx
     jz Print
 ; ---------------------------
-    mov byte [buffer + rsi], 'e'
+    mov byte [rsp + rsi], 'e'
     inc rsi
 ; ---------------------------
     cmp rbx, 0
@@ -164,21 +172,22 @@ Exponent:
 ; -----------------------------------------------
 ExponentNegative:
 ; ---------------------------
-    mov byte [buffer + rsi], '-'
+    mov byte [rsp + rsi], '-'
     inc rsi
 ; ---------------------------
 ExponentPositive:
 ; -----------------------------------------------
     mov rax, rdx
+    mov rbx, 10
 ; ---------------------------
 ConvertExponent:
 ; ---------------------------
     xor edx, edx                        ; rdx = 0
-    div qword [base10]                  ; rdx:rax / 10
+    div rbx                             ; rdx:rax / 10
 ; ---------------------------
     add dl, 0x30                        ; x <=> 0x3x
 ; ---------------------------
-    mov byte [buffer + rsi], dl
+    mov byte [rsp + rsi], dl
     inc rsi
 ; ---------------------------
     test eax, eax
@@ -188,15 +197,18 @@ ConvertExponent:
 ; -----------------------------------------------
 Print:
 ; ---------------------------
-    mov byte [buffer + rsi], 0x0a
+    mov byte [rsp + rsi], 0x0a
     inc rsi
 ; ---------------------------
     mov edi, stdout_fileno
     mov rdx, rsi
-    mov rsi, buffer
+    mov rsi, rsp
 ; ---------------------------
     mov eax, sys_write
     syscall
+; -----------------------------------------------
+    mov rsp, rbp
+    pop rbp
 ; -----------------------------------------------
     ret
 ; ===============================================
@@ -208,6 +220,11 @@ Print:
 ; ===============================================
 scansd:
 ; -----------------------------------------------
+    push rbp
+    mov rbp, rsp
+; -----------------------------------------------
+    sub rsp, buf_sz
+; -----------------------------------------------
     xorpd xmm0, xmm0                            ; xmm0 = 0.0
     xorpd xmm1, xmm1                            ; xmm1 = 0.0
 ; ---------------------------
@@ -215,11 +232,11 @@ scansd:
     movq xmm2, rax
 ; -----------------------------------------------
     mov edi, stdin_fileno
-    mov rsi, buffer
+    mov rsi, rsp
     mov rdx, 1
 ; ---------------------------
 ScanChar:
-    mov eax, sys_read       ; read 1 char from stdin to buffer
+    mov eax, sys_read       ; read 1 char from stdin to rsp
     syscall
 ; ---------------------------
     cmp byte [rsi], 0x0a
@@ -231,10 +248,10 @@ ScanChar:
 Sign:
 ; ---------------------------
     mov rcx, rsi
-    sub rcx, buffer
+    sub rcx, rsp
     xor esi, esi
 ; ---------------------------
-    cmp byte [buffer + rsi], '-'
+    cmp byte [rsp + rsi], '-'
     jnz GetPositive
 ; ---------------------------
 GetNegative:                ; xmm4 = -1.0
@@ -252,10 +269,10 @@ GetInteger:
 ; ---------------------------
 BuildInteger:
 ; ---------------------------
-    cmp rsi, rcx            ; buffer[rsi] = '\n'
+    cmp rsi, rcx            ; rsp[rsi] = '\n'
     jz End
 ; ---------------------------
-    mov al, byte [buffer + rsi]
+    mov al, byte [rsp + rsi]
     inc rsi
 ; ---------------------------
     cmp al, '.'
@@ -271,18 +288,18 @@ BuildInteger:
 ; -----------------------------------------------
 GetFractional:
 ; ---------------------------
-    dec rsi                 ; buffer[rsi] = '.'
-    dec rcx                 ; buffer[rcx] = last digit
+    dec rsi                 ; rsp[rsi] = '.'
+    dec rcx                 ; rsp[rcx] = last digit
 ; ---------------------------
 BuildFractional:
 ; ---------------------------
-    cmp rsi, rcx            ; buffer[rcx] = '.'
+    cmp rsi, rcx            ; rsp[rcx] = '.'
     jz End
 ; ---------------------------
-    mov al, byte [buffer + rcx]
+    mov al, byte [rsp + rcx]
     dec rcx
 ; ---------------------------
-    sub al, 0x30            ; 03x <=> x
+    sub al, 0x30            ; 0x03x <=> x
     cvtsi2sd xmm3, eax
 ; ---------------------------
     addsd xmm1, xmm3        ; xmm1 = (xmm1 + xmm3) / 10
@@ -295,6 +312,9 @@ End:
     addsd xmm0, xmm1        ; xmm0 += xmm1
     mulsd xmm0, xmm4        ; sign adj
     movq rax, xmm0
+; -----------------------------------------------
+    mov rsp, rbp
+    pop rbp
 ; -----------------------------------------------
     ret
 ; ===============================================
@@ -322,13 +342,3 @@ exit:
     mov eax, sys_exit
     syscall
 ; ===============================================
-
-
-
-
-
-section         .data
-
-base10  dq  10
-
-buffer  times   512 db  0

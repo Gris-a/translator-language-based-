@@ -10,14 +10,14 @@ func factorial}a{
 
 func main}{
 )
-    b raVno scansd}{$
-    esli}b menshe 0{
-    )
-        b raVno minus 1$
-    (
-    inache
-    )
-        b raVno factorial}b{$
-    (
-    printsd}b{$
+        b raVno scansd}{$
+        esli}b menshe 0{
+        )
+            b raVno minus 1$
+        (
+        inache
+        )
+            b raVno factorial}b{$
+        (
+        printsd}b{$
 (
