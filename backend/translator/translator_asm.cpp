@@ -313,7 +313,8 @@ static void TranslateExpression(Node *expr, FILE *asm_file, size_t n_func_params
 static void TranslateAssignment(Node *assig, FILE *asm_file, size_t n_func_params)
 {
     TranslateExpression(assig->right, asm_file, n_func_params);
-    fprintf(asm_file, "\tmovsd xmm0, [rsp]\n");
+    fprintf(asm_file, "\tpop rax\n"
+                      "\tmovq xmm0, rax\n");
 
     size_t var_id = GetVariable(assig->left);
     if(var_id < n_func_params)

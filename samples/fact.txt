@@ -10,14 +10,13 @@ func factorial}a{
 
 func main}{
 )
-        b raVno scansd}{$
-        esli}b menshe 0{
+        b raVno 6$
+        a raVno 0$
+        poka}a menshe 1000000000{
         )
-            b raVno minus 1$
+            c raVno factorial}b{$
+            a raVno a plus 1$
         (
-        inache
-        )
-            b raVno factorial}b{$
-        (
-        printsd}b{$
+
+        printsd}factorial}b{{$
 (

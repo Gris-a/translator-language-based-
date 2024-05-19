@@ -48,7 +48,6 @@ static void TranslateCompare(Node *comp, char *text_section, size_t *offset, str
     TranslateExpression(comp->right, text_section, offset, table, stack, n_func_params);
     TranslateExpression(comp->left , text_section, offset, table, stack, n_func_params);
 
-
     text_section[(*offset)++] = (char)0xF2; // movsd xmm0, [rsp]
     text_section[(*offset)++] = (char)0x0F;
     text_section[(*offset)++] = (char)0x10;
@@ -72,9 +71,24 @@ static void TranslateCompare(Node *comp, char *text_section, size_t *offset, str
     text_section[(*offset)++] = (char)0xC1;
     text_section[(*offset)++] = (char)comp_t;
 
-    text_section[(*offset)++] = (char)0xF2; // movsd [rsp], xmm0
+    text_section[(*offset)++] = (char)0x48; // mov rax, 1.0
+    text_section[(*offset)++] = (char)0xB8;
+    double num = 1.0;
+    memcpy(text_section + *offset, &num, sizeof(double));
+    *offset += sizeof(double);
+
+    text_section[(*offset)++] = (char)0x66; // movq rbx, xmm0
+    text_section[(*offset)++] = (char)0x48;
     text_section[(*offset)++] = (char)0x0F;
-    text_section[(*offset)++] = (char)0x11;
+    text_section[(*offset)++] = (char)0x7E;
+    text_section[(*offset)++] = (char)0xC3;
+
+    text_section[(*offset)++] = (char)0x48; // and rax, rbx
+    text_section[(*offset)++] = (char)0x21;
+    text_section[(*offset)++] = (char)0xD8;
+
+    text_section[(*offset)++] = (char)0x48; // mov [rsp], rax
+    text_section[(*offset)++] = (char)0x89;
     text_section[(*offset)++] = (char)0x04;
     text_section[(*offset)++] = (char)0x24;
 }
@@ -138,8 +152,13 @@ static void TranslateAnd(Node *_and, char *text_section, size_t *offset, struct 
     size_t jmp2_pos = *offset;
     (*offset) += sizeof(int32_t);
 
-    text_section[(*offset)++] = (char)0x6A; // push 1
-    text_section[(*offset)++] = (char)0x01;
+    text_section[(*offset)++] = (char)0x48; // mov rax, 1.0
+    text_section[(*offset)++] = (char)0xB8;
+    double num = 1.0;
+    memcpy(text_section + *offset, &num, sizeof(double));
+    *offset += sizeof(double);
+
+    text_section[(*offset)++] = (char)0x50; // push rax
 
     text_section[(*offset)++] = (char)0xE9; // jmp and_end
     size_t jmp3_pos = *offset;
@@ -202,8 +221,13 @@ static void TranslateOr(Node *_or, char *text_section, size_t *offset, struct Qu
     int32_t jmp2_offset = (int32_t)(*offset - jmp2_pos) - (int32_t)sizeof(int32_t); // load jmp offset to second jump
     memcpy(text_section + jmp2_pos, &jmp2_offset, sizeof(int32_t));
 
-    text_section[(*offset)++] = (char)0x6A; // push 1
-    text_section[(*offset)++] = (char)0x01;
+    text_section[(*offset)++] = (char)0x48; // mov rax, 1.0
+    text_section[(*offset)++] = (char)0xB8;
+    double num = 1.0;
+    memcpy(text_section + *offset, &num, sizeof(double));
+    *offset += sizeof(double);
+
+    text_section[(*offset)++] = (char)0x50; // push rax
 
     /*or_end*/
     int32_t jmp3_offset = (int32_t)(*offset - jmp3_pos) - (int32_t)sizeof(int32_t); // load jmp offset to third jump
@@ -421,11 +445,13 @@ static void TranslateAssignment(Node *assig, char *text_section, size_t *offset,
 {
     TranslateExpression(assig->right, text_section, offset, table, stack, n_func_params);
 
-    text_section[(*offset)++] = (char)0xF2; // movsd xmm0, [rsp]
+    text_section[(*offset)++] = (char)0x58; // pop rax
+
+    text_section[(*offset)++] = (char)0x66; // movq xmm0, rax
+    text_section[(*offset)++] = (char)0x48;
     text_section[(*offset)++] = (char)0x0F;
-    text_section[(*offset)++] = (char)0x10;
-    text_section[(*offset)++] = (char)0x04;
-    text_section[(*offset)++] = (char)0x24;
+    text_section[(*offset)++] = (char)0x6E;
+    text_section[(*offset)++] = (char)0xC0;
 
     int32_t rbp_offset = 0;
 
@@ -688,6 +714,7 @@ static void BuildElf(char *text_section, size_t text_section_sz, const char *pro
 
 
     FILE *executable = fopen(prog_name, "w");
+    assert(executable);
 
     fwrite(&elf_header     , sizeof(char), sizeof(elf_header)     , executable);
     fwrite(&text_header    , sizeof(char), sizeof(text_header)    , executable);
@@ -712,6 +739,7 @@ static void CatLib(char *text_section, size_t *offset, struct QuadHashTable *tab
     stat("compiler/lib.bin", &file_stat);
 
     FILE *lib = fopen("compiler/lib.bin", "r");
+    assert(lib);
     fread(text_section + *offset, sizeof(char), file_stat.st_size, lib);
     fclose(lib);
 
